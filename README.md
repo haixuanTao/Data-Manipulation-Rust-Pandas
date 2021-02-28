@@ -13,4 +13,3 @@ to run the rust code:
 - `cargo build --release`
 - `target/release/terrorism`
 
-Your good to go
