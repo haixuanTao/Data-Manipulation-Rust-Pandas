@@ -8,5 +8,3 @@ to run the rust code:
 - uncomment the section your interested in
 - `cargo build --release`
 - `target/release/terrorism`
-
-That's it
