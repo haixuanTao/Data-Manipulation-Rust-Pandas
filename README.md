@@ -6,7 +6,7 @@ Download the data at:
 
 to run the python code:
 - uncomment the section your interested in
-- `python python_benchmark.py`
+- `python src/python_benchmark.py`
 
 to run the rust code:
 - uncomment the section your interested in
