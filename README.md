@@ -1,4 +1,6 @@
-# Code following the blog post on Data Manipulation: Pandas vs Rust
+# Data Manipulation: Pandas vs Rust
+
+https://able.bio/haixuanTao/data-manipulation-pandas-vs-rust--1d70e7fc
 
 Download the data at:
 - https://www.kaggle.com/START-UMD/gtd
