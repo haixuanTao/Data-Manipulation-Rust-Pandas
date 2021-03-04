@@ -1,10 +1,10 @@
 use encoding_rs::WINDOWS_1252;
 use encoding_rs_io::DecodeReaderBytesBuilder;
 use std::collections::HashMap;
-
-use std::error::Error;
 use std::fs::File;
+use std::result::Result;
 mod lib;
+use itertools::Itertools;
 
 fn inspect(path: &str) {
     let mut record: lib::Record = HashMap::new();
@@ -48,7 +48,10 @@ fn inspect(path: &str) {
     println!("}}");
 }
 
-fn struct_oriented_result(path: &str, path_country: &str) -> Result<(), Box<dyn Error>> {
+fn struct_oriented_result(
+    path: &str,
+    path_country: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let file = File::open(path)?;
     let transcoded = DecodeReaderBytesBuilder::new()
         .encoding(Some(WINDOWS_1252))
@@ -70,59 +73,47 @@ fn struct_oriented_result(path: &str, path_country: &str) -> Result<(), Box<dyn 
     }
 
     // 1. Filtering
-    records.retain(|x| x.country_txt.as_ref().unwrap() == "United States");
+    // records.retain(|x| x.country_txt.as_ref().unwrap() == "United States");
 
-    let mut wtr =
-        csv::Writer::from_path("/home/peter/Documents/TEST/RUST/terrorism/output_rust_filter.csv")?;
+    // let mut wtr =
+    //     csv::Writer::from_path("/home/peter/Documents/TEST/RUST/terrorism/output_rust_filter.csv")?;
 
-    for record in &records {
-        wtr.serialize(record)?;
-    }
+    // for record in &records {
+    //     wtr.serialize(record)?;
+    // }
 
     // 2. Group By
-    // let mut groups: Vec<lib::GroupBy> = Vec::new();
+    let groups = records
+        .into_iter()
+        // .sorted_unstable_by(|a, b| Ord::cmp(&a.country_txt, &b.country_txt))
+        .group_by(|record| record.country_txt.clone())
+        .into_iter()
+        .map(|(country, group)| {
+            let (total_nkill, count, average_individual) = group.into_iter().fold(
+                (0., 0., 0.),
+                |(total_nkill, count, average_individual), record| {
+                    (
+                        total_nkill + record.nkill.unwrap_or(0.),
+                        count + 1.,
+                        average_individual + record.individual.unwrap_or(0.),
+                    )
+                },
+            );
+            lib::GroupBy {
+                country: country.unwrap(),
+                total_nkill,
+                average_individual: average_individual / count,
+                count,
+            }
+        })
+        .collect::<Vec<_>>();
+    let mut wtr =
+        csv::Writer::from_path("/home/peter/Documents/TEST/RUST/terrorism/output_rust_groupby.csv")
+            .unwrap();
 
-    // let unique_countries = records
-    //     .iter()
-    //     .map(|record| &record.country_txt)
-    //     .collect::<HashSet<_>>()
-    //     .clone(); // https://users.rust-lang.org/t/better-way-to-find-unique-values/38966
-
-    // for country in unique_countries {
-    //     let filtered_records: Vec<&lib::DataFrame> = records
-    //         .iter()
-    //         .filter(|record| &record.country_txt == country)
-    //         .collect();
-    //     let total_nkill: f64 = filtered_records
-    //         .iter()
-    //         .map(|record| match record.nkill.as_ref() {
-    //             Some(val) => val,
-    //             None => &0.,
-    //         })
-    //         .sum();
-    //     let count = filtered_records.iter().size_hint().1.unwrap() as f64;
-    //     let average_individual: f64 = filtered_records
-    //         .iter()
-    //         .map(|record| match record.individual.as_ref() {
-    //             Some(val) => val,
-    //             None => &0.,
-    //         })
-    //         .sum();
-
-    //     groups.push(lib::GroupBy {
-    //         country: country.as_ref().unwrap().to_string(),
-    //         total_nkill: total_nkill,
-    //         average_individual: average_individual / count,
-    //         count: count,
-    //     });
-    // }
-    // let mut wtr =
-    //     csv::Writer::from_path("/home/peter/Documents/TEST/RUST/terrorism/output_rust_groupby.csv")
-    //         .unwrap();
-
-    // for group in &groups {
-    //     wtr.serialize(group)?;
-    // }
+    for group in &groups {
+        wtr.serialize(group)?;
+    }
     // 3. Mutation
 
     // records.iter_mut().for_each(|x: &mut lib::DataFrame| {
@@ -178,15 +169,9 @@ fn struct_oriented_result(path: &str, path_country: &str) -> Result<(), Box<dyn 
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = "/home/peter/Documents/TEST/RUST/terrorism/src/globalterrorismdb_0718dist.csv";
     let path_country = "/home/peter/Documents/TEST/RUST/terrorism/src/WDICountry.csv";
-    // inspect(path_country);
-    match struct_oriented_result(path, path_country) {
-        Ok(()) => Ok(()),
-        Err(err) => {
-            eprintln!("Error: {:?}", err);
-            Err(err)
-        }
-    }
+    // inspect_schema(path);
+    struct_oriented_result(path, path_country)
 }
